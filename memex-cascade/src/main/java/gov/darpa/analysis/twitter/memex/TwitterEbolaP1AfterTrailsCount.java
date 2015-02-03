@@ -51,22 +51,29 @@ public class TwitterEbolaP1AfterTrailsCount {
     
     public static void main( String args[] ){
                        
-            //Define where the data is coming from and going. Read data from HBase       
+            //Define where the data is coming from and going. Read data from HBase               
+        System.out.println("Adding taps...");
         Tap hbaseTap = new HBaseTap( TABLE_NAME, new HBaseScheme( new Fields("key"), "tileData", new Fields("avro") ), SinkMode.KEEP );
               
             //Store the results in a text file on HDFS. 
-            //The console may be just as easy.
+            //The console may be just as easy.        
         Scheme sourceScheme = new TextLine( new Fields( "record_count" ) );
         Tap summaryResults = new Hfs( sourceScheme, OUTPUT_HDFS_PATH );
         
+        System.out.println("Adding pipeline..");
         Pipe allRecords = new Pipe( "all_records" );
         Pipe countRecords = new Every( allRecords, new Fields("tileData"), new Count() );
                       
+        System.out.println("Building flow...");
         Properties properties = new Properties();
         AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrailsCount.class);        
         HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
         Flow analysis = flowConnector.connect( hbaseTap, summaryResults, allRecords );
+        
+        System.out.println("Running analysis....");
         analysis.complete();
+        
+        System.out.println("Done.");
         
     }
     

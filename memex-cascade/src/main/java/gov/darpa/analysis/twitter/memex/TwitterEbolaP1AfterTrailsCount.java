@@ -14,6 +14,7 @@ import cascading.tap.SinkMode;
 import cascading.tap.Tap;
 import cascading.tap.hadoop.Hfs;
 import cascading.tuple.Fields;
+import java.util.Map;
 import java.util.Properties;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
@@ -70,7 +71,7 @@ public class TwitterEbolaP1AfterTrailsCount {
         Pipe countRecords = new Every( allRecords, new Fields("tileData"), new Count() );
                       
         System.out.println("Building flow...");
-        Properties properties = new Properties();
+        Map<Object,Object> properties = new ApplicationProperties();
         AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrailsCount.class);        
         HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
         Flow analysis = flowConnector.connect( hbaseTap, summaryResults, allRecords );

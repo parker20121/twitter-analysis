@@ -4,9 +4,7 @@ import cascading.flow.Flow;
 import cascading.flow.hadoop.HadoopFlowConnector;
 import cascading.hbase.HBaseScheme;
 import cascading.hbase.HBaseTap;
-import cascading.operation.Identity;
 import cascading.operation.aggregator.Count;
-import cascading.pipe.Each;
 import cascading.pipe.Every;
 import cascading.pipe.Pipe;
 import cascading.property.AppProps;
@@ -17,6 +15,8 @@ import cascading.tap.Tap;
 import cascading.tap.hadoop.Hfs;
 import cascading.tuple.Fields;
 import java.util.Properties;
+import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 
 /**
  *
@@ -49,10 +49,14 @@ public class TwitterEbolaP1AfterTrailsCount {
     public static final String TABLE_NAME = "twitter-ebola-p1-after-trails";
     public static final String OUTPUT_HDFS_PATH = "/usr/mparker/" + TABLE_NAME;
     
+    private static Logger log = Logger.getLogger(TwitterEbolaP1AfterTrailsCount.class);
+    
     public static void main( String args[] ){
                        
+        BasicConfigurator.configure();
+        
             //Define where the data is coming from and going. Read data from HBase               
-        System.out.println("Adding taps...");
+        log.debug("Adding taps...");
         Tap hbaseTap = new HBaseTap( TABLE_NAME, new HBaseScheme( new Fields("key"), "tileData", new Fields("avro") ), SinkMode.KEEP );
               
             //Store the results in a text file on HDFS. 

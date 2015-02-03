@@ -54,7 +54,8 @@ public class TwitterEbolaP1AfterTrailsCount {
     public static void main( String args[] ){
                        
         BasicConfigurator.configure();
-        
+        //HBaseConfiguration conf=new HBaseConfiguration();
+  
             //Define where the data is coming from and going. Read data from HBase               
         log.debug("Adding taps...");
         Tap hbaseTap = new HBaseTap( TABLE_NAME, new HBaseScheme( new Fields("key"), "tileData", new Fields("avro") ), SinkMode.KEEP );

@@ -1,15 +1,18 @@
 package gov.darpa.analysis.twitter.memex;
 
 import cascading.flow.Flow;
-import cascading.flow.FlowDef;
 import cascading.flow.hadoop.HadoopFlowConnector;
 import cascading.hbase.HBaseScheme;
 import cascading.hbase.HBaseTap;
+import cascading.operation.Identity;
+import cascading.operation.aggregator.Count;
+import cascading.pipe.Each;
+import cascading.pipe.Every;
 import cascading.pipe.Pipe;
-import cascading.pipe.assembly.MinBy;
 import cascading.property.AppProps;
 import cascading.scheme.Scheme;
 import cascading.scheme.hadoop.TextLine;
+import cascading.tap.SinkMode;
 import cascading.tap.Tap;
 import cascading.tap.hadoop.Hfs;
 import cascading.tuple.Fields;
@@ -41,44 +44,30 @@ import java.util.Properties;
  * 
  * @author <a href="mailto:matthew.parker@l3-com.com">Matt Parker</a>
  */
-public class TwitterEbolaP1AfterTrails {
+public class TwitterEbolaP1AfterTrailsCount {
+    
+    public static final String TABLE_NAME = "twitter-ebola-p1-after-trails";
+    public static final String OUTPUT_HDFS_PATH = "/usr/mparker/" + TABLE_NAME;
     
     public static void main( String args[] ){
-        
-        Properties properties = new Properties();
-        AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrails.class);
-        
-        HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
-               
-            //Define where the data is coming from and going.
-            //Read data from HBase
-        Fields keyFields = new Fields("metaData");
-        String familyName = "";
-        Fields valueFields = new Fields("tileData");
-        String tableName = "twitter-ebola-p1-after-trails";        
-        Tap hbaseTable = new HBaseTap( tableName, new HBaseScheme( keyFields, familyName, valueFields ) );
+                       
+            //Define where the data is coming from and going. Read data from HBase       
+        Tap hbaseTap = new HBaseTap( TABLE_NAME, new HBaseScheme( new Fields("key"), "tileData", new Fields("avro") ), SinkMode.KEEP );
               
             //Store the results in a text file on HDFS. 
             //The console may be just as easy.
-        Scheme sourceScheme = new TextLine( new Fields( "line" ) );
-        Tap summaryResults = new Hfs(sourceScheme, tableName);
+        Scheme sourceScheme = new TextLine( new Fields( "record_count" ) );
+        Tap summaryResults = new Hfs( sourceScheme, OUTPUT_HDFS_PATH );
         
-            //For each Twitter HBase record, extract the value field and convert the 
-            //data to an Avro record that can be read by the pipe processes below.
-        //Pipe avroData = new Avro();
-        
-            //Stream AVRO data from HBase table, and examine the tweet's date.
-        //Pipe analysisPipe = new Pipe("analysis", avroData);
-        //Pipe startDate = new MinBy(analysisPipe,);
-        //Pipe endDate = new MaxBy(analysisPipe);
-        
-        //FlowDef flowDef = FlowDef.flowDef()
-        //                         .setName("date_range")
-        //                         .addSource( startDate, hbaseTable )
-        //                         .addTailSink( endDate, hbaseTable );
-        
-        //Flow analysis = flowConnector.connect(flowDef);
-        //analysis.writeDOT("dot/wt.dot");
+        Pipe allRecords = new Pipe( "all_records" );
+        Pipe countRecords = new Every( allRecords, new Fields("tileData"), new Count() );
+                      
+        Properties properties = new Properties();
+        AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrailsCount.class);        
+        HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
+        Flow analysis = flowConnector.connect( hbaseTap, summaryResults, allRecords );
+        analysis.complete();
         
     }
+    
 }

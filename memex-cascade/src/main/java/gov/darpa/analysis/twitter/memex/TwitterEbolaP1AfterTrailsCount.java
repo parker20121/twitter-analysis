@@ -72,9 +72,10 @@ public class TwitterEbolaP1AfterTrailsCount {
                       
         System.out.println("Building flow...");
         Map<Object,Object> properties = new ApplicationProperties();
+        
         AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrailsCount.class);        
         HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
-        Flow analysis = flowConnector.connect( hbaseTap, summaryResults, allRecords );
+        Flow analysis = flowConnector.connect( hbaseTap, summaryResults, countRecords );
         
         System.out.println("Running analysis....");
         analysis.complete();

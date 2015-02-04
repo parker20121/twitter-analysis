@@ -1,6 +1,7 @@
 package gov.darpa.analysis.twitter.memex;
 
 import cascading.flow.Flow;
+import cascading.flow.FlowDef;
 import cascading.flow.hadoop.HadoopFlowConnector;
 import cascading.hbase.HBaseScheme;
 import cascading.hbase.HBaseTap;
@@ -75,7 +76,12 @@ public class TwitterEbolaP1AfterTrailsCount {
         
         AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrailsCount.class);        
         HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
-        Flow analysis = flowConnector.connect( hbaseTap, summaryResults, countRecords );
+        FlowDef flowDef = FlowDef.flowDef()
+                                 .setName("example_count")
+                                 .addSource(allRecords, hbaseTap)
+                                 .addSink(countRecords, summaryResults);
+                
+        Flow analysis = flowConnector.connect(flowDef);
         
         System.out.println("Running analysis....");
         analysis.complete();

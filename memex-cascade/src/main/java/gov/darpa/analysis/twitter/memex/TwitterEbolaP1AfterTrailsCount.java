@@ -1,12 +1,15 @@
 package gov.darpa.analysis.twitter.memex;
 
 import cascading.flow.Flow;
+import cascading.flow.FlowConnector;
 import cascading.flow.FlowDef;
 import cascading.flow.hadoop.HadoopFlowConnector;
+import cascading.flow.planner.FlowPlanner;
 import cascading.hbase.HBaseScheme;
 import cascading.hbase.HBaseTap;
 import cascading.operation.aggregator.Count;
 import cascading.pipe.Every;
+import cascading.pipe.GroupBy;
 import cascading.pipe.Pipe;
 import cascading.property.AppProps;
 import cascading.scheme.Scheme;
@@ -15,6 +18,9 @@ import cascading.tap.SinkMode;
 import cascading.tap.Tap;
 import cascading.tap.hadoop.Hfs;
 import cascading.tuple.Fields;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import org.apache.log4j.BasicConfigurator;
@@ -54,39 +60,57 @@ public class TwitterEbolaP1AfterTrailsCount {
     private static Logger log = Logger.getLogger(TwitterEbolaP1AfterTrailsCount.class);
     
     public static void main( String args[] ){
-                       
+                         
         BasicConfigurator.configure();
         //HBaseConfiguration conf=new HBaseConfiguration();
-  
+        
+        log.info("Starting cascade flow...");
+        
             //Define where the data is coming from and going. Read data from HBase               
         log.debug("Adding taps...");
         Tap hbaseTap = new HBaseTap( TABLE_NAME, new HBaseScheme( new Fields("key"), "tileData", new Fields("avro") ), SinkMode.KEEP );
-              
-            //Store the results in a text file on HDFS. 
-            //The console may be just as easy.        
-        Scheme sourceScheme = new TextLine( new Fields( "record_count" ) );
-        Tap summaryResults = new Hfs( sourceScheme, OUTPUT_HDFS_PATH );
-        
-        System.out.println("Adding pipeline..");
-        Pipe allRecords = new Pipe( "all_records" );
-        Pipe countRecords = new Every( allRecords, new Fields("tileData"), new Count() );
                       
-        System.out.println("Building flow...");
+        log.debug("Adding pipeline..");
+        Pipe allRecords = new Pipe( "all_records" );
+        Pipe groupAll = new GroupBy( allRecords, Fields.ALL );
+        Pipe countRecords = new Every( groupAll, new Count(), new Fields("avro") );
+               
+            //Store the results in a text file on HDFS.               
+        Scheme sinkScheme = new TextLine( new Fields( "record_count" ) );
+        Tap summaryResults = new Hfs( sinkScheme, OUTPUT_HDFS_PATH );
+                
+        log.debug("Building flow...");
         Map<Object,Object> properties = new ApplicationProperties();
         
         AppProps.setApplicationJarClass(properties, TwitterEbolaP1AfterTrailsCount.class);        
         HadoopFlowConnector flowConnector = new HadoopFlowConnector( properties );
-        FlowDef flowDef = FlowDef.flowDef()
-                                 .setName("example_count")
-                                 .addSource(allRecords, hbaseTap)
-                                 .addSink(countRecords, summaryResults);
+        
+        //Map<String, Tap> sources = new HashMap<String, Tap>();
+        //sources.put( "hbase", hbaseTap );
+
+        //Map<String, Tap> sinks = new HashMap<String, Tap>();
+        //sinks.put( "summary", summaryResults );
+        
+        //Collection<Pipe> pipes = new ArrayList<Pipe>();
+        //pipes.add( allRecords );
+        //pipes.add( groupAll );
+        //pipes.add( countRecords );
+        
+        log.debug("Running analysis....");
+        Flow flow = flowConnector.connect( hbaseTap, summaryResults, countRecords );
+        flow.complete();        
                 
-        Flow analysis = flowConnector.connect(flowDef);
+        //FlowDef flowDef = FlowDef.flowDef()
+        //                         .setName("example_count")
+        //                         .addSource(allRecords, hbaseTap)
+        //                         .addSink(countRecords, summaryResults);
+                
         
-        System.out.println("Running analysis....");
-        analysis.complete();
+        //Flow analysis = flowConnector.connect(flowDef);
+        //analysis.complete();
         
-        System.out.println("Done.");
+        
+        log.info("Done.");
         
     }
     
